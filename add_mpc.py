@@ -4,20 +4,44 @@ from io import StringIO
 import sys
 import os
 import json
+import subprocess as sp
 
 import youtube_dl
-import subprocess as sp
 
 
 def get_best_audio(metadata):
     """docstring for get_best_audio"""
 
     # audio_only = {fid: f for fid, f in formats.items() if "mime=audio" in f["url"]}
-    audio_only = {fid: f for fid, f in formats.items() if "audio only" in f["format"]}
+    audio_only = {fid: f for fid, f in formats.items() if "audio" in f["format_note"]}
     best_audio_list = sorted(audio_only.values(), key=lambda v: v["abr"], reverse=True)
     best_audio = best_audio_list[0]
 
     return best_audio
+
+
+class Playlist():
+    def __init__(self, file_path, stream_url):
+        self.file_path = file_path
+        self.stream_url = stream_url
+        self.author = ""
+        self.title = ""
+        self.duration = 0
+
+    def author(self, name):
+        self.author = name
+
+    def title(self, name):
+        self.title = name
+
+    def duration(self, length):
+        self.duration = length
+
+    def write(self):
+        with open(self.file_path) as pl_file:
+            pl_file.write("#EXTM3U\n")
+            pl_file.write(f"#EXTINF:{self.duration},{self.author} - {self.title}\n")
+            pl_file.write(f"{self.stream_url}")
 
 
 class Capturing(list):
