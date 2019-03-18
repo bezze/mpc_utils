@@ -9,6 +9,11 @@ import subprocess as sp
 
 import youtube_dl
 
+MPD_PLAYLISTS = os.environ.get("MPD_PLAYLISTS", ".local/lib/mpd/playlists")
+HOME = os.environ.get("HOME")
+MPD_HOST = os.environ.get("MPD_HOST", "127.0.0.1")
+MPD_PORT = os.environ.get("MPD_PORT", "6600")
+
 
 def get_best_audio(metadata):
     """docstring for get_best_audio"""
@@ -16,7 +21,8 @@ def get_best_audio(metadata):
     formats = {f["format_id"]: f for f in metadata["formats"]}
     audio_only = {
         fid: f for fid,
-        f in formats.items() if f["vcodec"] == "none"}
+        f in formats.items() if f["vcodec"] == "none" and "abr" in f}
+    print(audio_only)
     best_audio_list = sorted(
         audio_only.values(),
         key=lambda v: v["abr"],
@@ -35,14 +41,14 @@ class Playlist():
         self.title = title
         self.duration = float(duration)
 
-    def author(self, name):
+    def set_author(self, name):
         self.author = name
 
-    def title(self, name):
+    def set_title(self, name):
         self.title = name
 
-    def duration(self, length):
-        self.duration = length
+    def set_duration(self, length):
+        self.duration = float(length)
 
     def write(self):
         with open(self.file_path, "w") as pl_file:
@@ -81,12 +87,6 @@ def get_json():
 
     return metadata
 
-# song_format =
-# sp.run("mpc -f {song_format} add {url}")
-
-# host = "192.168.1.4"
-# port = "6603""-h", f"{host}", "-p", f"{port}",
-
 
 def get_duration(audio):
     """docstring for get_duration"""
@@ -109,19 +109,19 @@ def main():
     url = best_audio["url"]
     duration = get_duration(best_audio)
 
-    pl = Playlist("/home/user/.local/lib/mpd/playlists/stream_pl.m3u", url,
+    pl = Playlist(os.path.join(HOME, MPD_PLAYLISTS, "stream_pl.m3u"), url,
                   title=metadata["title"],
                   duration=duration
                   )
 
     pl.write()
 
-    cmd = ["/usr/bin/mpc"]
+    cmd = ["/usr/bin/mpc", f"--host={MPD_HOST}", f"--port={MPD_PORT}"]
     cmd += ["load", "stream_pl"]
     sp.run(cmd)
 
-    cmd = ["/usr/bin/mpc"]
-    cmd += ["load", "stream_pl"]
+    cmd = ["/usr/bin/mpc", f"--host={MPD_HOST}", f"--port={MPD_PORT}"]
+    cmd += ["rm", "stream_pl"]
     sp.run(cmd)
 
 
